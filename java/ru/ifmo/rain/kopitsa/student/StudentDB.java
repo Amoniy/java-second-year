@@ -10,17 +10,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BinaryOperator;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
 
 public class StudentDB implements StudentGroupQuery {
 
-    private Comparator<Student> studentNameComparator = Comparator.comparing(Student::getLastName)
+    private static final Comparator<Student> STUDENT_NAME_COMPARATOR = Comparator.comparing(Student::getLastName)
             .thenComparing(Student::getFirstName)
             .thenComparing(Student::getId);
 
@@ -47,12 +47,14 @@ public class StudentDB implements StudentGroupQuery {
 
     @Override
     public Set<String> getDistinctFirstNames(List<Student> students) {
-        return students.stream().map(Student::getFirstName).distinct().sorted().collect(toSet());
+        return students.stream().map(Student::getFirstName).distinct().sorted().collect(toCollection(TreeSet::new));
     }
 
     @Override
     public String getMinStudentFirstName(List<Student> students) {
-        return students.stream().min(Comparator.comparingInt(Student::getId)).get().getFirstName();
+        return students.stream()
+                .min(Comparator.comparingInt(Student::getId))
+                .orElse(new Student(0, "", "", "")).getFirstName();
     }
 
     @Override
@@ -62,33 +64,34 @@ public class StudentDB implements StudentGroupQuery {
 
     @Override
     public List<Student> sortStudentsByName(Collection<Student> students) {
-        return students.stream().sorted(studentNameComparator).collect(toList());
+        return students.stream().sorted(STUDENT_NAME_COMPARATOR).collect(toList());
     }
 
     @Override
     public List<Student> findStudentsByFirstName(Collection<Student> students, String name) {
         return students.stream().filter(student -> student.getFirstName().equals(name))
-                .sorted(studentNameComparator).collect(toList());
+                .sorted(STUDENT_NAME_COMPARATOR).collect(toList());
     }
 
     @Override
     public List<Student> findStudentsByLastName(Collection<Student> students, String name) {
         return students.stream().filter(student -> student.getLastName().equals(name))
-                .sorted(studentNameComparator).collect(toList());
+                .sorted(STUDENT_NAME_COMPARATOR).collect(toList());
     }
 
     @Override
     public List<Student> findStudentsByGroup(Collection<Student> students, String group) {
         return students.stream().filter(student -> student.getGroup().equals(group))
-                .sorted(studentNameComparator).collect(toList());
+                .sorted(STUDENT_NAME_COMPARATOR).collect(toList());
     }
 
     @Override
     public Map<String, String> findStudentNamesByGroup(Collection<Student> students, String group) {
         return students.stream().filter(student -> student.getGroup().equals(group))
-                .collect(toCollection(() -> new TreeSet<>(Comparator.comparing(Student::getFirstName)))).stream()
-                .collect(toMap(Student::getLastName, Student::getFirstName));
+                .collect(toMap(Student::getLastName, Student::getFirstName, BinaryOperator.minBy(String::compareTo)));
     }
+
+    // border of hard
 
     private Stream<List<Student>> putStudentsIntoListsByGroup(Collection<Student> students) {
         return students.stream().map(student -> students.stream()
