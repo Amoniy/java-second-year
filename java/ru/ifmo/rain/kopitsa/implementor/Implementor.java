@@ -40,7 +40,7 @@ public class Implementor implements Impler {
             writer.write(Modifier.toString(token.getModifiers()).replace("abstract interface", "class"));
             writer.write(String.format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
 
-            Method[] methods = token.getDeclaredMethods();
+            Method[] methods = token.getMethods();
             for (int i = 0; i < methods.length; i++) {
                 addMethod(methods[i], writer);
             }
@@ -58,8 +58,44 @@ public class Implementor implements Impler {
                 .replace("transient", ""));
         writer.write(" ");
         String returnType;
-        returnType = method.getReturnType().toString().replace("class", "");
+        returnType = method.getReturnType().toString()
+                .replace("class", "")
+                .replace("interface", "");
         returnType = returnType.trim();
+        switch (returnType.substring(0, 2)) {
+            case "[Z": {
+                returnType = "boolean;";
+                break;
+            }
+            case "[B": {
+                returnType = "byte;";
+                break;
+            }
+            case "[C": {
+                returnType = "char;";
+                break;
+            }
+            case "[D": {
+                returnType = "double;";
+                break;
+            }
+            case "[F": {
+                returnType = "float;";
+                break;
+            }
+            case "[I": {
+                returnType = "int;";
+                break;
+            }
+            case "[J": {
+                returnType = "long;";
+                break;
+            }
+            case "[S": {
+                returnType = "short;";
+                break;
+            }
+        }
         if (returnType.charAt(0) == '[') {
             returnType = returnType.substring(2);
         }
@@ -71,15 +107,27 @@ public class Implementor implements Impler {
         writer.write(method.getName());
         writer.write("(");
         for (int i = 0; i < method.getParameterCount(); i++) {
-            writer.write(method.getParameters()[i].toString());
+            writer.write(method.getParameterTypes()[i].getCanonicalName());
+            writer.write(String.format(" arg%d", i));
             if (i < method.getParameterCount() - 1) {
                 writer.write(", ");
             }
         }
         writer.write(") {\n");
-
         switch (method.getReturnType().toString()) {
             case "int": {
+                writer.write("return 0;");
+                break;
+            }
+            case "char": {
+                writer.write("return 0;");
+                break;
+            }
+            case "byte": {
+                writer.write("return 0;");
+                break;
+            }
+            case "short": {
                 writer.write("return 0;");
                 break;
             }
