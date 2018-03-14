@@ -21,7 +21,7 @@ public class Implementor implements Impler {
     // }
 
     private void createInterface(Class<?> token, Path root) throws ImplerException {
-        if (token == null || root == null || token.getPackage() == null || token.getPackage().toString() == null) {
+        if (token == null || root == null || token.getPackage() == null) {
             throw new ImplerException();
         }
 
@@ -30,7 +30,7 @@ public class Implementor implements Impler {
             Files.createDirectories(Paths.get(String.format("%s/%s", root,
                     token.getPackage().getName().replaceAll("\\.", "/"))));
         } catch (IOException e) {
-            System.out.println("Something went wrong 1");
+            System.out.println("Something went wrong with creating directories");
             return;
         }
 
@@ -49,7 +49,7 @@ public class Implementor implements Impler {
             writer.flush();
             writer.close();
         } catch (IOException e) {
-            System.out.println("Something went wrong 2");
+            System.out.println("Something went wrong with printing to file");
         }
     }
 
@@ -114,7 +114,5 @@ public class Implementor implements Impler {
     @Override
     public void implement(Class<?> token, Path root) throws ImplerException {
         createInterface(token, root);
-        if (token.isInterface()) {
-        }
     }
 }
