@@ -52,6 +52,10 @@ public class Implementor implements Impler {
     }
 
     private void addMethod(Method method, BufferedWriter writer) throws IOException {
+        StringBuilder annotationBuilder = new StringBuilder();
+        Arrays.stream(method.getAnnotations()).forEach(annotation -> annotationBuilder.append(annotation).append("\n"));
+        writer.write(annotationBuilder.toString());
+
         writer.write("public ");
 
         String returnType = method.getReturnType().getCanonicalName();
