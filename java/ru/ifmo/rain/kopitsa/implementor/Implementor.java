@@ -13,19 +13,11 @@ import java.nio.file.Paths;
 
 public class Implementor implements Impler {
 
-    // можно завести переменную врайтера и тогда не передавать его в каждый метод
-    // но тогда теряется возможность удобного ловления эксепшена в tryWithResource
-    // private BufferedWriter writer;
-    // private void initialiseWriter() {
-    //
-    // }
-
     private void createInterface(Class<?> token, Path root) throws ImplerException {
         if (token == null || root == null || token.getPackage() == null) {
-            throw new ImplerException();
+            throw new ImplerException("Null pointer in root or token");
         }
 
-        // вообще можно бы и пробрасывать IOException
         try {
             Files.createDirectories(Paths.get(String.format("%s/%s", root,
                     token.getPackage().getName().replaceAll("\\.", "/"))));
@@ -37,6 +29,7 @@ public class Implementor implements Impler {
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(String.format("%s/%s/%sImpl.java", root.toString(),
                 token.getPackage().getName().replaceAll("\\.", "/"), token.getSimpleName())))) {
             writer.write(token.getPackage() + ";\n\n");
+
             writer.write(Modifier.toString(token.getModifiers()).replace("abstract interface", "class"));
             writer.write(String.format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
 
@@ -54,16 +47,11 @@ public class Implementor implements Impler {
     }
 
     private void addMethod(Method method, BufferedWriter writer) throws IOException {
-        writer.write(Modifier.toString(method.getModifiers()).replace("abstract", "")
-                .replace("transient", ""));
-        writer.write(" ");
+        writer.write("public ");
         String returnType;
-        returnType = method.getReturnType().toString()
-                .replace("class", "")
-                .replace("interface", "");
-        returnType = returnType.trim();
+        returnType = method.getReturnType().getCanonicalName();
         switch (returnType.substring(0, 2)) {
-            case "[Z": {
+            case "[Z": {// добавить проверку на isPrimitive
                 returnType = "boolean;";
                 break;
             }
