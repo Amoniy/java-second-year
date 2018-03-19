@@ -4,12 +4,17 @@ import info.kgeorgiy.java.advanced.implementor.Impler;
 import info.kgeorgiy.java.advanced.implementor.ImplerException;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 
 public class Implementor implements Impler {
 
@@ -19,19 +24,19 @@ public class Implementor implements Impler {
         }
 
         try {
-            Files.createDirectories(Paths.get(String.format("%s/%s", root,
-                    token.getPackage().getName().replaceAll("\\.", "/"))));
+            Files.createDirectories(Paths.get(format("%s/%s", root,
+                    token.getPackage().getName().replace('.', File.separatorChar))));
         } catch (IOException e) {
             System.out.println("Something went wrong with creating directories");
             return;
         }
 
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(String.format("%s/%s/%sImpl.java", root.toString(),
-                token.getPackage().getName().replaceAll("\\.", "/"), token.getSimpleName())))) {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(format("%s/%s/%sImpl.java", root.toString(),
+                token.getPackage().getName().replace('.', File.separatorChar), token.getSimpleName())))) {
             writer.write(token.getPackage() + ";\n\n");
 
             writer.write(Modifier.toString(token.getModifiers()).replace("abstract interface", "class"));
-            writer.write(String.format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
+            writer.write(format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
 
             Method[] methods = token.getMethods();
             for (int i = 0; i < methods.length; i++) {
@@ -55,15 +60,9 @@ public class Implementor implements Impler {
 
         writer.write(method.getName());
 
-        writer.write("(");
-        for (int i = 0; i < method.getParameterCount(); i++) { // может на стрим?
-            writer.write(method.getParameterTypes()[i].getCanonicalName());
-            writer.write(String.format(" arg%d", i));
-            if (i < method.getParameterCount() - 1) {
-                writer.write(", ");
-            }
-        }
-        writer.write(") {\n");
+        String parameters = String.join(",", Arrays.stream(method.getParameters()).map(parameter ->
+                format("%s %s", parameter.getType().getCanonicalName(), parameter.getName())).collect(toList()));
+        writer.write(format("(%s) {\n", parameters));
 
         String defaultReturn;
         if (method.getReturnType().toString().equals("boolean")) {
@@ -75,7 +74,7 @@ public class Implementor implements Impler {
         } else {
             defaultReturn = " null";
         }
-        writer.write(String.format("return%s;", defaultReturn));
+        writer.write(format("return%s;", defaultReturn));
         writer.write("\n}\n");
     }
 
