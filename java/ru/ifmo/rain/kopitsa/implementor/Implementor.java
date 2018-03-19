@@ -50,44 +50,6 @@ public class Implementor implements Impler {
         writer.write("public ");
         String returnType;
         returnType = method.getReturnType().getCanonicalName();
-        switch (returnType.substring(0, 2)) {
-            case "[Z": {// добавить проверку на isPrimitive
-                returnType = "boolean;";
-                break;
-            }
-            case "[B": {
-                returnType = "byte;";
-                break;
-            }
-            case "[C": {
-                returnType = "char;";
-                break;
-            }
-            case "[D": {
-                returnType = "double;";
-                break;
-            }
-            case "[F": {
-                returnType = "float;";
-                break;
-            }
-            case "[I": {
-                returnType = "int;";
-                break;
-            }
-            case "[J": {
-                returnType = "long;";
-                break;
-            }
-            case "[S": {
-                returnType = "short;";
-                break;
-            }
-        }
-        if (returnType.charAt(0) == '[') {
-            returnType = returnType.substring(2);
-        }
-        returnType = returnType.replace(";", "[]");
 
         writer.write(returnType);
         writer.write(" ");
