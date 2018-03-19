@@ -48,15 +48,15 @@ public class Implementor implements Impler {
 
     private void addMethod(Method method, BufferedWriter writer) throws IOException {
         writer.write("public ");
-        String returnType;
-        returnType = method.getReturnType().getCanonicalName();
 
+        String returnType = method.getReturnType().getCanonicalName();
         writer.write(returnType);
         writer.write(" ");
 
         writer.write(method.getName());
+
         writer.write("(");
-        for (int i = 0; i < method.getParameterCount(); i++) {
+        for (int i = 0; i < method.getParameterCount(); i++) { // может на стрим?
             writer.write(method.getParameterTypes()[i].getCanonicalName());
             writer.write(String.format(" arg%d", i));
             if (i < method.getParameterCount() - 1) {
@@ -64,48 +64,18 @@ public class Implementor implements Impler {
             }
         }
         writer.write(") {\n");
-        switch (method.getReturnType().toString()) {
-            case "int": {
-                writer.write("return 0;");
-                break;
-            }
-            case "char": {
-                writer.write("return 0;");
-                break;
-            }
-            case "byte": {
-                writer.write("return 0;");
-                break;
-            }
-            case "short": {
-                writer.write("return 0;");
-                break;
-            }
-            case "long": {
-                writer.write("return 0;");
-                break;
-            }
-            case "double": {
-                writer.write("return 0;");
-                break;
-            }
-            case "float": {
-                writer.write("return 0;");
-                break;
-            }
-            case "void": {
-                break;
-            }
-            case "boolean": {
-                writer.write("return false;");
-                break;
-            }
-            default: {
-                writer.write("return null;");
-                break;
-            }
-        }
 
+        String defaultReturn;
+        if (method.getReturnType().toString().equals("boolean")) {
+            defaultReturn = " false";
+        } else if (method.getReturnType().toString().equals("void")) {
+            defaultReturn = "";
+        } else if (method.getReturnType().isPrimitive()) {
+            defaultReturn = " 0";
+        } else {
+            defaultReturn = " null";
+        }
+        writer.write(String.format("return%s;", defaultReturn));
         writer.write("\n}\n");
     }
 
