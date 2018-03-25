@@ -1,10 +1,13 @@
 package ru.ifmo.rain.kopitsa.implementor;
 
-import info.kgeorgiy.java.advanced.implementor.Impler;
 import info.kgeorgiy.java.advanced.implementor.ImplerException;
+import info.kgeorgiy.java.advanced.implementor.JarImpler;
 
+import javax.tools.ToolProvider;
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -12,11 +15,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 
-public class Implementor implements Impler {
+public class Implementor implements JarImpler {
 
     private void createInterface(Class<?> token, Path root) throws ImplerException {
         if (token == null || root == null || token.getPackage() == null) {
@@ -80,6 +87,46 @@ public class Implementor implements Impler {
         }
         writer.write(format("return%s;", defaultReturn));
         writer.write("\n}\n");
+    }
+
+    public void run(Class<?> token, Path root) {
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        try {
+            JarOutputStream target = new JarOutputStream(Files.newOutputStream(root.resolve(token.getName() + ".jar")), manifest);
+
+            JarEntry entry = new JarEntry(format("%s/%sImpl.class",
+                    token.getPackage().getName().replace('.', '/'), token.getSimpleName()));
+            target.putNextEntry(entry);
+
+            writeClass(new File(Paths.get(format("%s/%s/%sImpl.class", root.toString(),
+                    token.getPackage().getName().replace('.', '/'), token.getSimpleName())).toString()), target);
+            target.close();
+        } catch (IOException e) {
+            System.out.println("Проблема с записью в .jar");
+        }
+    }
+
+    private void writeClass(File source, JarOutputStream target) {
+        try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(source));) {
+            byte[] buffer = new byte[1024];
+            while (true) {
+                int count = in.read(buffer);
+                if (count == -1)
+                    break;
+                target.write(buffer, 0, count);
+            }
+            target.closeEntry();
+        } catch (IOException e) {
+            System.out.println("Couldn't write class");
+        }
+    }
+
+    @Override
+    public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
+//        createInterface(token, jarFile.getParent());
+        ToolProvider.getSystemJavaCompiler().run(null, null, null, jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java").toAbsolutePath().toString());
+        run(token, jarFile.getParent());
     }
 
     @Override
