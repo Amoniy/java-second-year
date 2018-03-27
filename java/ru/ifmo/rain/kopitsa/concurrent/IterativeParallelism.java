@@ -52,14 +52,28 @@ public class IterativeParallelism implements ScalarIP {
             return true;
         }
         threads = Math.min(threads, values.size());
+
+        boolean[] intermediateResults = new boolean[threads];
         List<Thread> threadList = new ArrayList<>();
-        for (int i = 0; i < threads; i++) {
-            threadList.add(new Thread(String.valueOf(i)));
-        }
         int finalThreads = threads;
-        return threadList.stream().allMatch(thread -> values.subList(
-                Integer.parseInt(thread.getName()) * values.size() / finalThreads,
-                (Integer.parseInt(thread.getName()) + 1) * values.size() / finalThreads).stream().allMatch(predicate));
+        for (int i = 0; i < threads; i++) {
+            int finalI = i;
+            threadList.add(new Thread(() -> {
+                intermediateResults[finalI] = values.subList(
+                        finalI * values.size() / finalThreads,
+                        (finalI + 1) * values.size() / finalThreads).stream().allMatch(predicate);
+            }));
+            threadList.get(i).run();
+        }
+        for (int i = 0; i < threads; i++) {
+            threadList.get(i).join();
+        }
+        for (int i = 0; i < threads; i++) {
+            if (!intermediateResults[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -68,13 +82,27 @@ public class IterativeParallelism implements ScalarIP {
             return false;
         }
         threads = Math.min(threads, values.size());
+
+        boolean[] intermediateResults = new boolean[threads];
         List<Thread> threadList = new ArrayList<>();
-        for (int i = 0; i < threads; i++) {
-            threadList.add(new Thread(String.valueOf(i)));
-        }
         int finalThreads = threads;
-        return threadList.stream().anyMatch(thread -> values.subList(
-                Integer.parseInt(thread.getName()) * values.size() / finalThreads,
-                (Integer.parseInt(thread.getName()) + 1) * values.size() / finalThreads).stream().anyMatch(predicate));
+        for (int i = 0; i < threads; i++) {
+            int finalI = i;
+            threadList.add(new Thread(() -> {
+                intermediateResults[finalI] = values.subList(
+                        finalI * values.size() / finalThreads,
+                        (finalI + 1) * values.size() / finalThreads).stream().anyMatch(predicate);
+            }));
+            threadList.get(i).run();
+        }
+        for (int i = 0; i < threads; i++) {
+            threadList.get(i).join();
+        }
+        for (int i = 0; i < threads; i++) {
+            if (intermediateResults[i]) {
+                return true;
+            }
+        }
+        return false;
     }
 }
