@@ -107,6 +107,10 @@ public class Implementor implements JarImpler {
         }
     }
 
+    //  /Users/antonkopitsa/StudioProjects/java-advanced-2018/test/info/kgeorgiy/java/advanced/implementor/examples
+    //   /basic/InterfaceWithDefaultMethodImpl.java
+
+
     private void writeClass(File source, JarOutputStream target) {
         try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(source));) {
             byte[] buffer = new byte[1024];
@@ -124,7 +128,7 @@ public class Implementor implements JarImpler {
 
     @Override
     public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
-//        createInterface(token, jarFile.getParent());
+        createInterface(token, jarFile.getParent());
         ToolProvider.getSystemJavaCompiler().run(null, null, null, jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java").toAbsolutePath().toString());
         run(token, jarFile.getParent());
     }
@@ -134,7 +138,7 @@ public class Implementor implements JarImpler {
         createInterface(token, root);
     }
 
-    public static void main(String[] args) throws ImplerException {
+    public static void main(String[] args) {
         if (args.length > 2) {
             if (args[0].equals("-jar")) {
                 Implementor implementor = new Implementor();
@@ -142,8 +146,14 @@ public class Implementor implements JarImpler {
                     implementor.implementJar(Class.forName(args[1]), Paths.get(args[2]));
                 } catch (ClassNotFoundException e) {
                     System.out.println("Class not found");
+                } catch (ImplerException e) {
+                    System.out.println("Exception in implementing class");
                 }
             }
         }
     }
 }
+
+// ./Script.sh
+// java -jar Implementor.jar -jar info.kgeorgiy.java.advanced.implementor.examples.basic.InterfaceWithDefaultMethod test/Test.jar
+

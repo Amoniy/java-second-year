@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Class-Path: artifacts/ImplementorTest.jar
+Created-By: 1.8.0_151 (Oracle Corporation)
+
