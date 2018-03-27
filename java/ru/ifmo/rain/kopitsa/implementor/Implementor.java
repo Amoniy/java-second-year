@@ -133,4 +133,17 @@ public class Implementor implements JarImpler {
     public void implement(Class<?> token, Path root) throws ImplerException {
         createInterface(token, root);
     }
+
+    public static void main(String[] args) throws ImplerException {
+        if (args.length > 2) {
+            if (args[0].equals("-jar")) {
+                Implementor implementor = new Implementor();
+                try {
+                    implementor.implementJar(Class.forName(args[1]), Paths.get(args[2]));
+                } catch (ClassNotFoundException e) {
+                    System.out.println("Class not found");
+                }
+            }
+        }
+    }
 }
