@@ -25,39 +25,6 @@ import static java.util.stream.Collectors.toList;
 
 public class Implementor implements JarImpler {
 
-    private void createInterface(Class<?> token, Path root) throws ImplerException {
-        if (token == null || root == null || token.getPackage() == null) {
-            throw new ImplerException("Null pointer in root or token");
-        }
-
-        try {
-            Files.createDirectories(Paths.get(format("%s/%s", root,
-                    token.getPackage().getName().replace('.', File.separatorChar))));
-        } catch (IOException e) {
-            System.out.println("Something went wrong with creating directories");
-            return;
-        }
-
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(format("%s/%s/%sImpl.java", root.toString(),
-                token.getPackage().getName().replace('.', File.separatorChar), token.getSimpleName())))) {
-            writer.write(token.getPackage() + ";\n\n");
-
-            writer.write(Modifier.toString(token.getModifiers()).replace("abstract interface", "class"));
-            writer.write(format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
-
-            Method[] methods = token.getMethods();
-            for (int i = 0; i < methods.length; i++) {
-                addMethod(methods[i], writer);
-            }
-
-            writer.write("\n}\n");
-            writer.flush();
-            writer.close();
-        } catch (IOException e) {
-            System.out.println("Something went wrong with printing to file");
-        }
-    }
-
     private void addMethod(Method method, BufferedWriter writer) throws IOException {
         StringBuilder annotationBuilder = new StringBuilder();
         Arrays.stream(method.getAnnotations()).forEach(annotation -> annotationBuilder.append(annotation).append("\n"));
@@ -107,10 +74,6 @@ public class Implementor implements JarImpler {
         }
     }
 
-    //  /Users/antonkopitsa/StudioProjects/java-advanced-2018/test/info/kgeorgiy/java/advanced/implementor/examples
-    //   /basic/InterfaceWithDefaultMethodImpl.java
-
-
     private void writeClass(File source, JarOutputStream target) {
         try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(source));) {
             byte[] buffer = new byte[1024];
@@ -128,14 +91,60 @@ public class Implementor implements JarImpler {
 
     @Override
     public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
-        createInterface(token, jarFile.getParent());
+        implement(token, jarFile.getParent());
         ToolProvider.getSystemJavaCompiler().run(null, null, null, jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java").toAbsolutePath().toString());
         run(token, jarFile.getParent());
     }
 
+    /**
+     * Appends a subsequence of the specified character sequence to this output
+     * stream.
+     *
+     * @param  token
+     *         The character sequence from which a subsequence will be
+     *         appended.  If <tt>csq</tt> is <tt>null</tt>, then characters
+     *         will be appended as if <tt>csq</tt> contained the four
+     *         characters <tt>"null"</tt>.
+     *
+     * @param  root
+     *         The index of the first character in the subsequence
+     *
+     * @throws  ImplerException
+     *          If <tt>token</tt> or <tt>root</tt> or <tt>root.getPackage()</tt> are null
+     *
+     */
     @Override
     public void implement(Class<?> token, Path root) throws ImplerException {
-        createInterface(token, root);
+        if (token == null || root == null || token.getPackage() == null) {
+            throw new ImplerException("Null pointer in root or token");
+        }
+
+        try {
+            Files.createDirectories(Paths.get(format("%s/%s", root,
+                    token.getPackage().getName().replace('.', File.separatorChar))));
+        } catch (IOException e) {
+            System.out.println("Something went wrong with creating directories");
+            return;
+        }
+
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(format("%s/%s/%sImpl.java", root.toString(),
+                token.getPackage().getName().replace('.', File.separatorChar), token.getSimpleName())))) {
+            writer.write(token.getPackage() + ";\n\n");
+
+            writer.write(Modifier.toString(token.getModifiers()).replace("abstract interface", "class"));
+            writer.write(format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
+
+            Method[] methods = token.getMethods();
+            for (int i = 0; i < methods.length; i++) {
+                addMethod(methods[i], writer);
+            }
+
+            writer.write("\n}\n");
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            System.out.println("Something went wrong with printing to file");
+        }
     }
 
     public static void main(String[] args) {
@@ -154,6 +163,6 @@ public class Implementor implements JarImpler {
     }
 }
 
-// ./Script.sh
+// ./GenerateJar.sh
 // java -jar Implementor.jar -jar info.kgeorgiy.java.advanced.implementor.examples.basic.InterfaceWithDefaultMethod test/Test.jar
 
