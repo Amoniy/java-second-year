@@ -3,7 +3,7 @@ package ru.ifmo.rain.kopitsa.concurrent;
 import info.kgeorgiy.java.advanced.concurrent.ScalarIP;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
@@ -16,9 +16,9 @@ public class IterativeParallelism implements ScalarIP {
             return null;
         }
         threads = Math.min(threads, values.size());
-        List<Thread> threadList = new ArrayList<>();
+        Thread[] threadList = new Thread[threads];
 
-        ArrayList<T> intermediateResults = new ArrayList<>(threads);
+        List<T> intermediateResults = new ArrayList<>(threads);
         for (int i = 0; i < threads; i++) {
             intermediateResults.add(null);
         }
@@ -27,18 +27,18 @@ public class IterativeParallelism implements ScalarIP {
         for (int i = 0; i < threads; i++) {
             // Коля, а как вообще так, что это эффективли файнл?
             int finalI = i;
-            threadList.add(new Thread(() -> {
-                intermediateResults.set(finalI, Collections.max(values.subList(
+            threadList[i] = new Thread(() -> {
+                intermediateResults.set(finalI, values.subList(
                         finalI * values.size() / finalThreads,
-                        (finalI + 1) * values.size() / finalThreads), comparator));
-            }));
-            threadList.get(i).run();
+                        (finalI + 1) * values.size() / finalThreads).stream().max(comparator).orElse(null));
+            });
+            threadList[i].start();
         }
         for (int i = 0; i < threads; i++) {
-            threadList.get(i).join();
+            threadList[i].join();
         }
 
-        return Collections.max(intermediateResults, comparator);
+        return intermediateResults.stream().max(comparator).orElse(null);
     }
 
     @Override
@@ -53,27 +53,22 @@ public class IterativeParallelism implements ScalarIP {
         }
         threads = Math.min(threads, values.size());
 
-        boolean[] intermediateResults = new boolean[threads];
-        List<Thread> threadList = new ArrayList<>();
+        Boolean[] intermediateResults = new Boolean[threads];
+        Thread[] threadList = new Thread[threads];
         int finalThreads = threads;
         for (int i = 0; i < threads; i++) {
             int finalI = i;
-            threadList.add(new Thread(() -> {
+            threadList[i] = new Thread(() -> {
                 intermediateResults[finalI] = values.subList(
                         finalI * values.size() / finalThreads,
                         (finalI + 1) * values.size() / finalThreads).stream().allMatch(predicate);
-            }));
-            threadList.get(i).run();
+            });
+            threadList[i].run();
         }
         for (int i = 0; i < threads; i++) {
-            threadList.get(i).join();
+            threadList[i].start();
         }
-        for (int i = 0; i < threads; i++) {
-            if (!intermediateResults[i]) {
-                return false;
-            }
-        }
-        return true;
+        return Arrays.stream(intermediateResults).allMatch(res -> res);
     }
 
     @Override
