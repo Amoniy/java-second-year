@@ -71,15 +71,15 @@ public class Implementor implements JarImpler {
     public void assembleJar(Class<?> token, Path root) {
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
-        try {
-            JarOutputStream target = new JarOutputStream(Files.newOutputStream(root.resolve(token.getName() + ".jar")), manifest);
-
+        try (JarOutputStream target =
+                     new JarOutputStream(Files.newOutputStream(root.resolve(token.getName() + ".jar")), manifest)) {
             JarEntry entry = new JarEntry(format("%s/%sImpl.class",
                     token.getPackage().getName().replace('.', '/'), token.getSimpleName()));
             target.putNextEntry(entry);
 
             writeClass(new File(Paths.get(format("%s/%s/%sImpl.class", root.toString(),
-                    token.getPackage().getName().replace('.', '/'), token.getSimpleName())).toString()), target);
+                    token.getPackage().getName().replace('.', '/'),
+                    token.getSimpleName())).toString()), target);
             target.close();
         } catch (IOException e) {
             System.out.println("Проблема с записью в .jar");
@@ -92,8 +92,8 @@ public class Implementor implements JarImpler {
      * @param source Class to write into jar.
      * @param target Jar output stream.
      */
-    private void writeClass(File source, JarOutputStream target) {
-        try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(source));) {
+    private void writeClass(File source, JarOutputStream target) throws IOException {
+        try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(source))) {
             byte[] buffer = new byte[1024];
             while (true) {
                 int count = in.read(buffer);
@@ -104,6 +104,7 @@ public class Implementor implements JarImpler {
             target.closeEntry();
         } catch (IOException e) {
             System.out.println("Couldn't write class");
+            throw e;
         }
     }
 
