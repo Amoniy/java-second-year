@@ -25,6 +25,12 @@ import static java.util.stream.Collectors.toList;
 
 public class Implementor implements JarImpler {
 
+    /**
+     * Adds given method to .java file.
+     *
+     * @param method Method to add.
+     * @param writer Given writer.
+     */
     private void addMethod(Method method, BufferedWriter writer) throws IOException {
         StringBuilder annotationBuilder = new StringBuilder();
         Arrays.stream(method.getAnnotations()).forEach(annotation -> annotationBuilder.append(annotation).append("\n"));
@@ -56,7 +62,13 @@ public class Implementor implements JarImpler {
         writer.write("\n}\n");
     }
 
-    public void run(Class<?> token, Path root) {
+    /**
+     * Writes given class into jar.
+     *
+     * @param token Class to write into jar.
+     * @param root  Root folder of class.
+     */
+    public void assembleJar(Class<?> token, Path root) {
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
         try {
@@ -74,6 +86,12 @@ public class Implementor implements JarImpler {
         }
     }
 
+    /**
+     * Writes given class into jar.
+     *
+     * @param source Class to write into jar.
+     * @param target Jar output stream.
+     */
     private void writeClass(File source, JarOutputStream target) {
         try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(source));) {
             byte[] buffer = new byte[1024];
@@ -89,29 +107,26 @@ public class Implementor implements JarImpler {
         }
     }
 
+    /**
+     * Implements given interface with default return values. And assembles it into jar.
+     *
+     * @param token   Interface to implement.
+     * @param jarFile Full expected name of jar file.
+     * @throws ImplerException If <tt>token</tt> or <tt>jarFile.getParent()</tt> or <tt>jarFile.getParent().getPackage()</tt> are null.
+     */
     @Override
     public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
         implement(token, jarFile.getParent());
         ToolProvider.getSystemJavaCompiler().run(null, null, null, jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java").toAbsolutePath().toString());
-        run(token, jarFile.getParent());
+        assembleJar(token, jarFile.getParent());
     }
 
     /**
-     * Appends a subsequence of the specified character sequence to this output
-     * stream.
+     * Implements given interface with default return values.
      *
-     * @param  token
-     *         The character sequence from which a subsequence will be
-     *         appended.  If <tt>csq</tt> is <tt>null</tt>, then characters
-     *         will be appended as if <tt>csq</tt> contained the four
-     *         characters <tt>"null"</tt>.
-     *
-     * @param  root
-     *         The index of the first character in the subsequence
-     *
-     * @throws  ImplerException
-     *          If <tt>token</tt> or <tt>root</tt> or <tt>root.getPackage()</tt> are null
-     *
+     * @param token Interface to implement.
+     * @param root  Root folder of class.
+     * @throws ImplerException If <tt>token</tt> or <tt>root</tt> or <tt>root.getPackage()</tt> are null.
      */
     @Override
     public void implement(Class<?> token, Path root) throws ImplerException {
@@ -162,7 +177,3 @@ public class Implementor implements JarImpler {
         }
     }
 }
-
-// ./GenerateJar.sh
-// java -jar Implementor.jar -jar info.kgeorgiy.java.advanced.implementor.examples.basic.InterfaceWithDefaultMethod test/Test.jar
-
