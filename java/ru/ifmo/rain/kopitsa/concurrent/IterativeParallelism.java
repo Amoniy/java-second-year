@@ -78,31 +78,6 @@ public class IterativeParallelism implements ScalarIP {
 
     @Override
     public <T> boolean any(int threads, List<? extends T> values, Predicate<? super T> predicate) throws InterruptedException {
-        if (values.size() == 0) {
-            return false;
-        }
-        threads = Math.min(threads, values.size());
-
-        boolean[] intermediateResults = new boolean[threads];
-        List<Thread> threadList = new ArrayList<>();
-        int finalThreads = threads;
-        for (int i = 0; i < threads; i++) {
-            int finalI = i;
-            threadList.add(new Thread(() -> {
-                intermediateResults[finalI] = values.subList(
-                        finalI * values.size() / finalThreads,
-                        (finalI + 1) * values.size() / finalThreads).stream().anyMatch(predicate);
-            }));
-            threadList.get(i).run();
-        }
-        for (int i = 0; i < threads; i++) {
-            threadList.get(i).join();
-        }
-        for (int i = 0; i < threads; i++) {
-            if (intermediateResults[i]) {
-                return true;
-            }
-        }
-        return false;
+        return !all(threads, values, predicate.negate());
     }
 }
