@@ -30,6 +30,7 @@ public class Implementor implements JarImpler {
      *
      * @param method Method to add.
      * @param writer Given writer.
+     * @throws IOException If <tt>writer</tt> throws it.
      */
     private void addMethod(Method method, BufferedWriter writer) throws IOException {
         StringBuilder annotationBuilder = new StringBuilder();
@@ -46,7 +47,17 @@ public class Implementor implements JarImpler {
 
         String parameters = String.join(",", Arrays.stream(method.getParameters()).map(parameter ->
                 format("%s %s", parameter.getType().getCanonicalName(), parameter.getName())).collect(toList()));
-        writer.write(format("(%s) {\n", parameters));
+        writer.write(format("(%s) ", parameters));
+
+        Class[] exceptions = method.getExceptionTypes();
+        if (exceptions.length > 0) {
+            writer.write("throws ");
+            String exceptionsNames = String.join(",", Arrays.stream(exceptions)
+                    .map(Class::getCanonicalName).collect(toList()));
+            writer.write(exceptionsNames);
+        }
+
+        writer.write("{\n");
 
         String defaultReturn;
         if (method.getReturnType().toString().equals("boolean")) {
@@ -91,6 +102,7 @@ public class Implementor implements JarImpler {
      *
      * @param source Class to write into jar.
      * @param target Jar output stream.
+     * @throws IOException If <tt>target</tt> throws it.
      */
     private void writeClass(File source, JarOutputStream target) throws IOException {
         try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(source))) {
@@ -113,12 +125,15 @@ public class Implementor implements JarImpler {
      *
      * @param token   Interface to implement.
      * @param jarFile Full expected name of jar file.
-     * @throws ImplerException If <tt>token</tt> or <tt>jarFile.getParent()</tt> or <tt>jarFile.getParent().getPackage()</tt> are null.
+     * @throws ImplerException If <tt>token</tt> or <tt>jarFile.getParent()</tt> or
+     *                         <tt>jarFile.getParent().getPackage()</tt> are null.
      */
     @Override
     public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
         implement(token, jarFile.getParent());
-        ToolProvider.getSystemJavaCompiler().run(null, null, null, jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java").toAbsolutePath().toString());
+        ToolProvider.getSystemJavaCompiler().run(null, null, null,
+                jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java")
+                        .toAbsolutePath().toString());
         assembleJar(token, jarFile.getParent());
     }
 
@@ -147,7 +162,8 @@ public class Implementor implements JarImpler {
                 token.getPackage().getName().replace('.', File.separatorChar), token.getSimpleName())))) {
             writer.write(token.getPackage() + ";\n\n");
 
-            writer.write(Modifier.toString(token.getModifiers()).replace("abstract interface", "class"));
+            writer.write(Modifier.toString(token.getModifiers())
+                    .replace("abstract interface", "class"));
             writer.write(format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
 
             Method[] methods = token.getMethods();
