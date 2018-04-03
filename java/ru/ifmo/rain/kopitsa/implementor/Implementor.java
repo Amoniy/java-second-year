@@ -26,6 +26,25 @@ import static java.util.stream.Collectors.toList;
 public class Implementor implements JarImpler {
 
     /**
+     * Escapes given string.
+     *
+     * @param stringToEscape String to escape.
+     * @return {@link java.lang.String} escaped string.
+     */
+    private String escape(String stringToEscape) {
+        StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < stringToEscape.length(); index++) {
+            char currentChar = stringToEscape.charAt(index);
+            if (currentChar <= 127) {
+                builder.append(currentChar);
+            } else {
+                builder.append(String.format("\\u%04x", (int) currentChar));
+            }
+        }
+        return builder.toString();
+    }
+
+    /**
      * Adds given method to .java file.
      *
      * @param method Method to add.
@@ -35,29 +54,25 @@ public class Implementor implements JarImpler {
     private void addMethod(Method method, BufferedWriter writer) throws IOException {
         StringBuilder annotationBuilder = new StringBuilder();
         Arrays.stream(method.getAnnotations()).forEach(annotation -> annotationBuilder.append(annotation).append("\n"));
-        writer.write(annotationBuilder.toString());
+        writer.write(escape(annotationBuilder.toString()));
 
-        writer.write("public ");
+        writer.write(escape("public "));
 
         String returnType = method.getReturnType().getCanonicalName();
-        writer.write(returnType);
-        writer.write(" ");
-
-        writer.write(method.getName());
+        writer.write(escape(String.format("%s %s", returnType, method.getName())));
 
         String parameters = String.join(",", Arrays.stream(method.getParameters()).map(parameter ->
                 format("%s %s", parameter.getType().getCanonicalName(), parameter.getName())).collect(toList()));
-        writer.write(format("(%s) ", parameters));
+        writer.write(escape(format("(%s) ", parameters)));
 
         Class[] exceptions = method.getExceptionTypes();
         if (exceptions.length > 0) {
-            writer.write("throws ");
             String exceptionsNames = String.join(",", Arrays.stream(exceptions)
                     .map(Class::getCanonicalName).collect(toList()));
-            writer.write(exceptionsNames);
+            writer.write(escape(String.format("throws %s", exceptionsNames)));
         }
 
-        writer.write("{\n");
+        writer.write(escape("{\n"));
 
         String defaultReturn;
         if (method.getReturnType().toString().equals("boolean")) {
@@ -69,8 +84,7 @@ public class Implementor implements JarImpler {
         } else {
             defaultReturn = " null";
         }
-        writer.write(format("return%s;", defaultReturn));
-        writer.write("\n}\n");
+        writer.write(escape(format("return%s;\n}\n", defaultReturn)));
     }
 
     /**
@@ -79,7 +93,7 @@ public class Implementor implements JarImpler {
      * @param token Class to write into jar.
      * @param root  Root folder of class.
      */
-    public void assembleJar(Class<?> token, Path root) {
+    private void assembleJar(Class<?> token, Path root) {
         Manifest manifest = new Manifest();
         manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
         try (JarOutputStream target =
@@ -133,7 +147,7 @@ public class Implementor implements JarImpler {
         implement(token, jarFile.getParent());
         ToolProvider.getSystemJavaCompiler().run(null, null, null,
                 jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java")
-                        .toAbsolutePath().toString(), "-encoding", "UTF-8");
+                        .toAbsolutePath().toString(), "-encoding", "CP1251");
         assembleJar(token, jarFile.getParent());
     }
 
@@ -158,21 +172,20 @@ public class Implementor implements JarImpler {
             return;
         }
 
-        // тут по дефолту стоит UTF-8 => не нужно дополнительно прописывать это
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(format("%s/%s/%sImpl.java", root.toString(),
                 token.getPackage().getName().replace('.', File.separatorChar), token.getSimpleName())))) {
-            writer.write(token.getPackage() + ";\n\n");
+            writer.write(escape(token.getPackage() + ";\n\n"));
 
-            writer.write(Modifier.toString(token.getModifiers())
-                    .replace("abstract interface", "class"));
-            writer.write(format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
+            writer.write(escape(Modifier.toString(token.getModifiers())
+                    .replace("abstract interface", "class")));
+            writer.write(escape(format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName())));
 
             Method[] methods = token.getMethods();
             for (int i = 0; i < methods.length; i++) {
                 addMethod(methods[i], writer);
             }
 
-            writer.write("\n}\n");
+            writer.write(escape("\n}\n"));
             writer.flush();
             writer.close();
         } catch (IOException e) {
