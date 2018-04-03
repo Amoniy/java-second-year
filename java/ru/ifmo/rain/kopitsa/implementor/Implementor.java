@@ -133,7 +133,7 @@ public class Implementor implements JarImpler {
         implement(token, jarFile.getParent());
         ToolProvider.getSystemJavaCompiler().run(null, null, null,
                 jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java")
-                        .toAbsolutePath().toString());
+                        .toAbsolutePath().toString(), "-encoding", "UTF-8");
         assembleJar(token, jarFile.getParent());
     }
 
@@ -158,6 +158,7 @@ public class Implementor implements JarImpler {
             return;
         }
 
+        // тут по дефолту стоит UTF-8 => не нужно дополнительно прописывать это
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(format("%s/%s/%sImpl.java", root.toString(),
                 token.getPackage().getName().replace('.', File.separatorChar), token.getSimpleName())))) {
             writer.write(token.getPackage() + ";\n\n");
