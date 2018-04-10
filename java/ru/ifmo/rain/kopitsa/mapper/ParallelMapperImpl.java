@@ -9,9 +9,13 @@ import java.util.function.Function;
 
 public class ParallelMapperImpl implements ParallelMapper {
 
-    private int threads;
+    private int threads = 1;
     private Thread[] threadsArray;
     private final List<Runnable> tasks;
+
+    public int getThreads() {
+        return threads;
+    }
 
     public ParallelMapperImpl(int threads) {
         this.threads = threads;

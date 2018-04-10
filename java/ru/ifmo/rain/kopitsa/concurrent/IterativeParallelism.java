@@ -1,6 +1,7 @@
 package ru.ifmo.rain.kopitsa.concurrent;
 
 import info.kgeorgiy.java.advanced.concurrent.ScalarIP;
+import ru.ifmo.rain.kopitsa.mapper.ParallelMapperImpl;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -9,6 +10,16 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class IterativeParallelism implements ScalarIP {
+
+    private ParallelMapperImpl mapper;
+
+    public IterativeParallelism() {
+
+    }
+
+    public IterativeParallelism(ParallelMapperImpl mapper) {
+        this.mapper = mapper;
+    }
 
     @Override
     public <T> T maximum(int threads, List<? extends T> values, Comparator<? super T> comparator)
@@ -46,14 +57,23 @@ public class IterativeParallelism implements ScalarIP {
         if (values.size() == 0) {
             return null;
         }
-        threads = Math.min(threads, values.size());
-        Thread[] threadList = new Thread[threads];
 
+        if (mapper != null) {
+            threads = Math.min(mapper.getThreads(), values.size());
+            List<List<? extends T>> arguments = new ArrayList<>(threads);
+            for (int i = 0; i < threads; i++) {
+                arguments.add(values.subList(i * values.size() / threads, (i + 1) * values.size() / threads));
+            }
+            return mapper.map(function, arguments);
+        }
+
+        threads = Math.min(threads, values.size());
         List<R> intermediateResults = new ArrayList<>(threads);
         for (int i = 0; i < threads; i++) {
             intermediateResults.add(null);
         }
 
+        Thread[] threadList = new Thread[threads];
         int finalThreads = threads;
         for (int i = 0; i < threads; i++) {
             int finalI = i;
