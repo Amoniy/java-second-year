@@ -9,13 +9,9 @@ import java.util.function.Function;
 
 public class ParallelMapperImpl implements ParallelMapper {
 
-    private int threads = 1;
+    private int threads;
     private Thread[] threadsArray;
     private final List<Runnable> tasks;
-
-    public int getThreads() {
-        return threads;
-    }
 
     public ParallelMapperImpl(int threads) {
         this.threads = threads;
@@ -45,16 +41,16 @@ public class ParallelMapperImpl implements ParallelMapper {
 
     @Override
     public <T, R> List<R> map(Function<? super T, ? extends R> f, List<? extends T> args) throws InterruptedException {
-        List<R> results = new ArrayList<>(threads);
-        for (int i = 0; i < threads; i++) {
+        List<R> results = new ArrayList<>(args.size());
+        for (int i = 0; i < args.size(); i++) {
             results.add(null);
         }
 
         final Counter counter = new Counter();
         for (int i = 0; i < args.size(); i++) {
-            int currentI = i;
+            int finalI = i;
             Runnable runnable = () -> {
-                results.set(currentI, f.apply(args.get(currentI)));
+                results.set(finalI, f.apply(args.get(finalI)));
                 synchronized (counter) {
                     counter.increment();
                     if (counter.getCount() == args.size()) {

@@ -1,7 +1,7 @@
 package ru.ifmo.rain.kopitsa.concurrent;
 
 import info.kgeorgiy.java.advanced.concurrent.ScalarIP;
-import ru.ifmo.rain.kopitsa.mapper.ParallelMapperImpl;
+import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,13 +11,13 @@ import java.util.function.Predicate;
 
 public class IterativeParallelism implements ScalarIP {
 
-    private ParallelMapperImpl mapper;
+    private ParallelMapper mapper;
 
     public IterativeParallelism() {
 
     }
 
-    public IterativeParallelism(ParallelMapperImpl mapper) {
+    public IterativeParallelism(ParallelMapper mapper) {
         this.mapper = mapper;
     }
 
@@ -51,37 +51,37 @@ public class IterativeParallelism implements ScalarIP {
         return !all(threads, values, predicate.negate());
     }
 
+    private <T> List<List<? extends T>> splitList(int threads, List<? extends T> values) {
+        List<List<? extends T>> splitList = new ArrayList<>();
+        for (int i = 0; i < threads; i++) {
+            splitList.add(values.subList(i * values.size() / threads, (i + 1) * values.size() / threads));
+        }
+        return splitList;
+    }
+
     private <T, R> List<R> applyFunctionConcurrently(int threads, List<? extends T> values,
                                                      Function<List<? extends T>, R> function)
             throws InterruptedException {
         if (values.size() == 0) {
             return null;
         }
+        threads = Math.min(threads, values.size());
+        List<List<? extends T>> arguments = splitList(threads, values);
 
         if (mapper != null) {
-            threads = Math.min(mapper.getThreads(), values.size());
-            List<List<? extends T>> arguments = new ArrayList<>(threads);
-            for (int i = 0; i < threads; i++) {
-                arguments.add(values.subList(i * values.size() / threads, (i + 1) * values.size() / threads));
-            }
             return mapper.map(function, arguments);
         }
 
-        threads = Math.min(threads, values.size());
         List<R> intermediateResults = new ArrayList<>(threads);
         for (int i = 0; i < threads; i++) {
             intermediateResults.add(null);
         }
 
         Thread[] threadList = new Thread[threads];
-        int finalThreads = threads;
         for (int i = 0; i < threads; i++) {
             int finalI = i;
             threadList[i] = new Thread(() -> {
-                intermediateResults.set(finalI,
-                        function.apply(values.subList(
-                                finalI * values.size() / finalThreads,
-                                (finalI + 1) * values.size() / finalThreads)));
+                intermediateResults.set(finalI, function.apply(arguments.get(finalI)));
             });
             threadList[i].start();
         }
