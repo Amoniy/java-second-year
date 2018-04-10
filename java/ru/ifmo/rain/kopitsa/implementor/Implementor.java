@@ -146,7 +146,8 @@ public class Implementor implements JarImpler {
     public void implementJar(Class<?> token, Path jarFile) throws ImplerException {
         implement(token, jarFile.getParent());
         ToolProvider.getSystemJavaCompiler().run(null, null, null,
-                jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/") + "Impl.java")
+                jarFile.getParent().resolve(token.getCanonicalName().replace(".", "/")
+                        + "Impl.java")
                         .toAbsolutePath().toString(), "-encoding", "CP1251");
         assembleJar(token, jarFile.getParent());
     }
