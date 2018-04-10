@@ -48,31 +48,29 @@ public class Implementor implements JarImpler {
      * Adds given method to .java file.
      *
      * @param method Method to add.
-     * @param writer Given writer.
-     * @throws IOException If <tt>writer</tt> throws it.
+     * @return {@link java.lang.String} Java code style written method.
      */
-    private void addMethod(Method method, BufferedWriter writer) throws IOException {
-        StringBuilder annotationBuilder = new StringBuilder();
-        Arrays.stream(method.getAnnotations()).forEach(annotation -> annotationBuilder.append(annotation).append("\n"));
-        writer.write(escape(annotationBuilder.toString()));
+    private String addMethod(Method method) {
+        StringBuilder builder = new StringBuilder();
+        Arrays.stream(method.getAnnotations()).forEach(annotation -> builder.append(annotation).append("\n"));
 
-        writer.write(escape("public "));
+        builder.append("public ");
 
         String returnType = method.getReturnType().getCanonicalName();
-        writer.write(escape(String.format("%s %s", returnType, method.getName())));
+        builder.append(String.format("%s %s", returnType, method.getName()));
 
         String parameters = String.join(",", Arrays.stream(method.getParameters()).map(parameter ->
                 format("%s %s", parameter.getType().getCanonicalName(), parameter.getName())).collect(toList()));
-        writer.write(escape(format("(%s) ", parameters)));
+        builder.append(format("(%s) ", parameters));
 
         Class[] exceptions = method.getExceptionTypes();
         if (exceptions.length > 0) {
             String exceptionsNames = String.join(",", Arrays.stream(exceptions)
                     .map(Class::getCanonicalName).collect(toList()));
-            writer.write(escape(String.format("throws %s", exceptionsNames)));
+            builder.append(String.format("throws %s", exceptionsNames));
         }
 
-        writer.write(escape("{\n"));
+        builder.append("{\n");
 
         String defaultReturn;
         if (method.getReturnType().toString().equals("boolean")) {
@@ -84,7 +82,8 @@ public class Implementor implements JarImpler {
         } else {
             defaultReturn = " null";
         }
-        writer.write(escape(format("return%s;\n}\n", defaultReturn)));
+        builder.append(format("return%s;\n}\n", defaultReturn));
+        return builder.toString();
     }
 
     /**
@@ -175,18 +174,19 @@ public class Implementor implements JarImpler {
 
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(format("%s/%s/%sImpl.java", root.toString(),
                 token.getPackage().getName().replace('.', File.separatorChar), token.getSimpleName())))) {
-            writer.write(escape(token.getPackage() + ";\n\n"));
-
-            writer.write(escape(Modifier.toString(token.getModifiers())
-                    .replace("abstract interface", "class")));
-            writer.write(escape(format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName())));
+            StringBuilder builder = new StringBuilder();
+            builder.append(token.getPackage()).append(";\n\n");
+            builder.append(Modifier.toString(token.getModifiers())
+                    .replace("abstract interface", "class"));
+            builder.append(format(" %sImpl implements %s {\n\n", token.getSimpleName(), token.getSimpleName()));
 
             Method[] methods = token.getMethods();
             for (int i = 0; i < methods.length; i++) {
-                addMethod(methods[i], writer);
+                builder.append(addMethod(methods[i]));
             }
 
-            writer.write(escape("\n}\n"));
+            builder.append("\n}\n");
+            writer.write(escape(builder.toString()));
             writer.flush();
             writer.close();
         } catch (IOException e) {
