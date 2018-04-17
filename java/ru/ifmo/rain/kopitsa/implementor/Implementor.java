@@ -187,7 +187,6 @@ public class Implementor implements JarImpler {
 
             builder.append("\n}\n");
             writer.write(escape(builder.toString()));
-            writer.flush();
             writer.close();
         } catch (IOException e) {
             System.out.println("Something went wrong with printing to file");
