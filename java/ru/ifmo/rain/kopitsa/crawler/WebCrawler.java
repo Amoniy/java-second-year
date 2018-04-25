@@ -23,12 +23,10 @@ public class WebCrawler implements Crawler {
 
     private class DataHandler {
 
-        // data
         private Queue<String> links;
         private ConcurrentSkipListSet<String> downloaded;
         private Map<String, IOException> errors;
 
-        // synchronization utils
         private Lock lock;
         private Condition done;
         private AtomicInteger count;
@@ -43,20 +41,13 @@ public class WebCrawler implements Crawler {
         }
     }
 
-    //    private int downloaders;
-//    private int extractors;
-//    private int perHost;
     private Downloader downloader;
 
-    // возможно вынести в хендлер
     private ExecutorService downloadThreads;
     private ExecutorService extractorThreads;
 
     public WebCrawler(Downloader downloader, int downloaders, int extractors, int perHost) {
         this.downloader = downloader;
-//        this.downloaders = downloaders;
-//        this.extractors = extractors;
-//        this.perHost = perHost;
 
         downloadThreads = Executors.newFixedThreadPool(downloaders);
         extractorThreads = Executors.newFixedThreadPool(extractors);
@@ -121,7 +112,6 @@ public class WebCrawler implements Crawler {
                     handler.links.add(url);
                 }
             } catch (IOException e) {
-//                System.out.println("Error happened in link = " + url);
                 handler.links.remove(url);
                 handler.errors.put(url, e);
             } finally {
@@ -149,7 +139,6 @@ public class WebCrawler implements Crawler {
         public void run() {
             try {
                 for (String link : document.extractLinks()) {
-//                    System.out.println("Extractor: link = " + link + ", depth = " + depth + ", maxDepth = " + maxDepth);
                     downloadThreads.submit(new DownloaderRunnable(link, depth, maxDepth, handler));
                 }
             } catch (IOException ignored) {
