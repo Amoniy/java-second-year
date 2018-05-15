@@ -1,15 +1,43 @@
 package ru.ifmo.rain.kopitsa.concurrent;
 
-import info.kgeorgiy.java.advanced.concurrent.ScalarIP;
+import info.kgeorgiy.java.advanced.concurrent.ListIP;
 import info.kgeorgiy.java.advanced.mapper.ParallelMapper;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-public class IterativeParallelism implements ScalarIP {
+public class IterativeParallelism implements ListIP {
+
+    @Override
+    public String join(int threads, List<?> values) throws InterruptedException {
+        List<String> ans = applyFunctionConcurrently(threads, values, ts ->
+                ts.stream().map(Object::toString).collect(Collectors.joining()));
+        assert ans != null;
+        return ans.stream().map(Object::toString).collect(Collectors.joining());
+    }
+
+    @Override
+    public <T> List<T> filter(final int threads, final List<? extends T> values, final Predicate<? super T> predicate)
+            throws InterruptedException {
+        List<List<T>> ans = applyFunctionConcurrently(threads, values, ts -> ts.stream().filter(predicate)
+                .collect(Collectors.toList()));
+        assert ans != null;
+        return ans.stream().flatMap(Collection::stream).collect(Collectors.toList());
+    }
+
+    @Override
+    public <T, U> List<U> map(final int threads, final List<? extends T> values, final Function<? super T, ? extends U> f)
+            throws InterruptedException {
+        List<List<U>> ans = applyFunctionConcurrently(threads, values, ts -> ts.stream().map(f)
+                .collect(Collectors.toList()));
+        assert ans != null;
+        return ans.stream().flatMap(Collection::stream).collect(Collectors.toList());
+    }
 
     private ParallelMapper mapper;
 
