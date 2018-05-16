@@ -76,12 +76,23 @@ public class ParallelMapperImpl implements ParallelMapper {
         for (int i = 0; i < threads; i++) {
             threadsArray[i].interrupt();
         }
+
+        InterruptedException interruptedException = null;
         for (int i = 0; i < threads; i++) {
             try {
                 threadsArray[i].join();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                if (interruptedException == null) {
+                    interruptedException = e;
+                    i--;
+                    continue;
+                }
+                i--;
+                interruptedException.addSuppressed(e);
             }
+        }
+        if (interruptedException != null) {
+            interruptedException.printStackTrace();
         }
     }
 

@@ -13,6 +13,16 @@ import java.util.stream.Collectors;
 
 public class IterativeParallelism implements ListIP {
 
+    private ParallelMapper mapper;
+
+    public IterativeParallelism() {
+
+    }
+
+    public IterativeParallelism(ParallelMapper mapper) {
+        this.mapper = mapper;
+    }
+
     @Override
     public String join(int threads, List<?> values) throws InterruptedException {
         List<String> ans = applyFunctionConcurrently(threads, values, ts ->
@@ -37,16 +47,6 @@ public class IterativeParallelism implements ListIP {
                 .collect(Collectors.toList()));
         assert ans != null;
         return ans.stream().flatMap(Collection::stream).collect(Collectors.toList());
-    }
-
-    private ParallelMapper mapper;
-
-    public IterativeParallelism() {
-
-    }
-
-    public IterativeParallelism(ParallelMapper mapper) {
-        this.mapper = mapper;
     }
 
     @Override
@@ -113,8 +113,22 @@ public class IterativeParallelism implements ListIP {
             });
             threadList[i].start();
         }
+        InterruptedException interruptedException = null;
         for (int i = 0; i < threads; i++) {
-            threadList[i].join();
+            try {
+                threadList[i].join();
+            } catch (InterruptedException e) {
+                if (interruptedException == null) {
+                    interruptedException = e;
+                    i--;
+                    continue;
+                }
+                i--;
+                interruptedException.addSuppressed(e);
+            }
+        }
+        if (interruptedException != null) {
+            throw interruptedException;
         }
 
         return intermediateResults;
