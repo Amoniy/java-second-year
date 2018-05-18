@@ -7,6 +7,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Callable;
@@ -60,18 +61,20 @@ public class HelloUDPClient implements HelloClient {
                 DatagramPacket response = new DatagramPacket(new byte[bufferSize], bufferSize);
                 for (int requestIndex = 0; requestIndex < requests; requestIndex++) {
                     String query = prefix + threadNumber + "_" + requestIndex;
-                    byte data[] = query.getBytes();
+                    byte data[] = query.getBytes("UTF-8");
                     DatagramPacket request = new DatagramPacket(data, data.length, serverAddress);
                     while (!Thread.interrupted()) {
                         try {
                             socket.send(request);
                             try {
                                 socket.receive(response);
-                                String responseString = new String(response.getData(), response.getOffset(), response.getLength());
-                                String expectedResponse = "Hello, " + query;
+                                String responseString = new String(response.getData(), response.getOffset(),
+                                        response.getLength(), "UTF-8");
+                                String expectedResponse = new String(("Hello, " + query).getBytes("UTF-8"));
                                 if (!expectedResponse.equals(responseString)) {
                                     continue;
                                 }
+                                System.out.println(new String(responseString.getBytes(Charset.defaultCharset())));
                                 break;
                             } catch (IOException e) {
                                 System.err.println("Unable to receive packet: " + e.getMessage());

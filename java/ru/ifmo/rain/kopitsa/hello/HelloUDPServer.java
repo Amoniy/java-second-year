@@ -65,10 +65,11 @@ public class HelloUDPServer implements HelloServer {
                 while (!Thread.interrupted()) {
                     try {
                         socket.receive(request);
-                        String requestString = new String(request.getData(), request.getOffset(), request.getLength());
-                        String responseString = "Hello, " + requestString;
+                        String requestString = new String(request.getData(), request.getOffset(),
+                                request.getLength(), "UTF-8");
+                        String responseString = new String(("Hello, " + requestString).getBytes("UTF-8"));
 
-                        byte[] sendData = responseString.getBytes();
+                        byte[] sendData = responseString.getBytes("UTF-8");
                         DatagramPacket response = new DatagramPacket(sendData, sendData.length,
                                 request.getAddress(), request.getPort());
                         try {
